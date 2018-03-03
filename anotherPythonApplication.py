@@ -28,17 +28,18 @@ if not ok:
     print('Cannot read video file')
     sys.exit()
 
-previous_x = []  # stores the
-previous_y = []
-previous_id = []
-yield_object_total_count = []
-trusted_coordinates = []
-detection_list = []  # [(x1y1),(x2,y2)] - mid points
-bounding_boxes_for_tracker = []
+# previous_x = []  # stores the
+# previous_y = []
+previous_id = 0
+yield_object_total_count = 0
+# trusted_coordinates = []
+# detection_list = []  # [(x1y1),(x2,y2)] - mid points
+
 bounding_boxes_has_changed = 0
 is_first_frame = 1
-tracking_list = []
-new_detection = 0;
+tracking_list = []  # [(x1y1),(x2,y2)] - mid points given from tracker
+new_detection = 0
+current_detections_on_d_frame = 0
 # Define an initial bounding box
 # bbox = (625, 252, 123, 135)
 
@@ -56,7 +57,10 @@ while True:
     ok, frame = video.read()
     if not ok:
         break
-
+    same_detections_this_frame = []
+    bounding_boxes_for_tracker = []
+    # no_of_new_detections_this_frame = 0
+    current_frame_detection_id = 0
     result = tfnet.return_predict(frame)
     print(result)
     for one_detection in result:
@@ -67,33 +71,53 @@ while True:
         mid_x = left + (right - left) / 2
         mid_y = top + (bot - top) / 2
         cv2.rectangle(frame, (left, top), (right, bot), (0, 255, 0), 2, 1)
+        if mid_y > 100: #safe upper margin
+            # current_frame_detection_id +=1
+            same_detection_has_found = 0
+            print("-----current_frame_detection_id ------", current_frame_detection_id)
 
-        if is_first_frame == 0:
-            new_detection = 1;
-        if is_first_frame == 0:
-            for index in range(len(tracking_list)):
-                print('---11111111111-------')
-                detect_and_track_x_diff = mid_x - tracking_list[index][0]
-                detect_and_track_y_diff = mid_y - tracking_list[index][1]
-                print(detect_and_track_x_diff)
-                print(detect_and_track_y_diff)
+            if is_first_frame == 1:
+                new_detection = 1
+            if is_first_frame == 0:
+                for index in range(len(tracking_list)):
+                    # print('---11111111111-------')
+                    print("----(tracking_list)index----", index)
+                    detect_and_track_x_diff = abs(mid_x - tracking_list[index][0])
+                    detect_and_track_y_diff = abs(mid_y - tracking_list[index][1])
+                    print(detect_and_track_x_diff)
+                    print(detect_and_track_y_diff)
 
-                if new_detection == 0:
-                    if detect_and_track_x_diff > 8 and detect_and_track_y_diff > 8:
-                        new_detection = 1;
-                        print('---new_detection-------')
+                    if same_detection_has_found == 0:
+                        if detect_and_track_x_diff < 15 and detect_and_track_y_diff < 29:
+                            # new_detection = 1;
+                            same_detection_has_found = 1
+                            print('---same_detection-------')
+                            same_detections_this_frame.append(current_frame_detection_id)
 
-        is_first_frame = 0
-        # detection_list.append((mid_x,mid_y))
-        # print('-------------------')
-        # print(detection_list[0][0])
-        # print(detection_list[0][1])
+            bounding_box = (left, top, right - left, bot - top)
+            bounding_boxes_for_tracker.append(bounding_box)
+            current_frame_detection_id += 1
+    # end of detections loop
 
-        bounding_box = (left, top, right - left, bot - top)
-        bounding_boxes_for_tracker.append(bounding_box)
-        # if only_once==1:
-        #     bounding_boxes_has_changed = 1
-        #     only_once=0
+    is_first_frame = 0
+
+    print("current_frame_detection_id", current_frame_detection_id)
+    print("len(same_detections_this_frame)", len(same_detections_this_frame))
+    print(same_detections_this_frame)
+    print("len(bounding_boxes_for_tracker)", len(bounding_boxes_for_tracker))
+    print(bounding_boxes_for_tracker)
+    # removing previous detected boxes
+    if len(same_detections_this_frame) > 0:
+        # for same_detections in same_detections_this_frame:
+        # print("same_detections",same_detections)
+        # bounding_boxes_for_tracker.pop(same_detections)
+        # print("same_detections removed", same_detections)
+        for index1 in sorted(same_detections_this_frame, reverse=True):
+            del bounding_boxes_for_tracker[index1]
+    print("len(bounding_boxes_for_tracker) after", len(bounding_boxes_for_tracker))
+
+    if len(bounding_boxes_for_tracker) > 0:
+        new_detection = 1
 
     if ok:
         if not init_once:
@@ -101,16 +125,16 @@ while True:
                 for index in range(len(bounding_boxes_for_tracker)):
                     ok = tracker.add(cv2.TrackerMIL_create(), frame, bounding_boxes_for_tracker[index])
                 # ok = tracker.add(cv2.TrackerMIL_create(), frame, bbox2)
-                init_once = True
+                # init_once = True
                 new_detection = 0
 
         # Update tracker
         ok, boxes = tracker.update(frame)
         print(ok, boxes)
 
+        tracking_list = []
         # Draw bounding box
         for newbox in boxes:
-            tracking_list = []
             track_mid_x = newbox[0] + newbox[2] / 2
             track_mid_y = newbox[1] + newbox[3] / 2
             tracking_list.append((track_mid_x, track_mid_y))
