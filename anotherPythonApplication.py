@@ -76,7 +76,7 @@ while True:
                     print(detect_and_track_y_diff)
 
                     if same_detection_has_found == 0:
-                        if detect_and_track_x_diff < 16 and detect_and_track_y_diff < 29:
+                        if detect_and_track_x_diff < 19 and detect_and_track_y_diff < 29:
                             # new_detection = 1;
                             same_detection_has_found = 1
                             print('---same_detection-------')
@@ -118,13 +118,13 @@ while True:
 
         # reset main tracker on each and every 20 frames
         # if frame_count  == 0:
-        if frame_count % 20 == 0:
+        if frame_count :
             print("tracker reset")
             keeping_boxes=[]
             tracker = cv2.MultiTracker_create()
             for one_box in boxes:
                 print(one_box)
-                if one_box[1] + one_box[3]/2 < 600:
+                if one_box[1] + one_box[3]/2 < 600 and one_box[0] + one_box[2]/2 > 135: #inside the box
                     bbox_to_add = (one_box[0],
                                    one_box[1],
                                    one_box[2],
@@ -155,15 +155,15 @@ while True:
 
     # Display FPS on frame
 
-    cv2.putText(frame, "Frame No : " + str(int(frame_count)), (100, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50),
+    cv2.putText(frame, "Frame No : " + str(int(frame_count)), (100, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255),
                 2)
     # cv2.putText(frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
-    cv2.putText(frame, "Count : " + str(int(yield_object_total_count))+"/ Weight : " + str(float(yield_object_total_count*0.123))+"kg", (100, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+    cv2.putText(frame, "Count : " + str(int(yield_object_total_count))+" / Weight : " + str(float(yield_object_total_count*0.123))+"kg", (100, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
                 (0, 0, 0), 2);
     # medium size tomato weight 123g
 
     # Draw margins
-    cv2.rectangle(frame, (25, 100), (1250, 600), (2, 2, 253), 1, 1)
+    cv2.rectangle(frame, (135, 100), (1250, 600), (2, 2, 253), 1, 1)
 
     print("frame_count", frame_count)
     frame_count += 1
@@ -171,7 +171,7 @@ while True:
     # Display result
     cv2.imshow("Tracking", frame)
 
-    out.write(frame)
+    # out.write(frame)
 
     # Exit if ESC pressed
     k = cv2.waitKey(1) & 0xff
